@@ -4,7 +4,7 @@ A portfolio-ready **n8n inventory monitoring workflow** that reads inventory dat
 
 > This project is an **inventory monitoring automation**, not a full POS or stock transaction management system. Staff still update the current stock values in the inventory source; n8n handles monitoring, detection, reporting, and alerts.
 
-![Workflow Overview](screenshots/01-workflow-overview.png)
+![Workflow Overview](screenshots/01-workflow-overview.webp)
 
 ## Business Problem
 
@@ -52,19 +52,19 @@ If the condition is true, the item is included in the reorder alert.
 
 ### Inventory source
 
-![Inventory Source](screenshots/02-inventory-source.png)
+![Inventory Source](screenshots/02-inventory-source.webp)
 
 ### Low-stock condition
 
-![Low Stock Condition](screenshots/03-low-stock-condition.png)
+![Low Stock Condition](screenshots/03-low-stock-condition.webp)
 
 ### Low-stock alert
 
-![Low Stock Alert](screenshots/04-low-stock-alert.png)
+![Low Stock Alert](screenshots/04-low-stock-alert.webp)
 
 ### Daily inventory summary
 
-![Daily Inventory Summary](screenshots/05-daily-inventory-summary.png)
+![Daily Inventory Summary](screenshots/05-daily-inventory-summary.webp)
 
 ## Inventory Data Structure
 
