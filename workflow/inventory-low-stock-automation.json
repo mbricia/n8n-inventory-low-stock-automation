@@ -1,0 +1,353 @@
+{
+  "name": "Inventory & Low-Stock Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 14
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "01517212-c79a-4703-b163-b8e992dd76d1",
+      "name": "Daily Inventory Check"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inventory"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6663e6e9-adb8-4793-9138-94b99f20c8ea",
+      "name": "Load Inventory Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "61a6db86-bb97-43ad-b936-3e5014b64591",
+              "leftValue": "={{ $json.current_stock }}",
+              "rightValue": "={{ $json.reorder_level }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "286c27f7-3025-4cad-bc87-7bafdc956e12",
+      "name": "Check Low-Stock Level"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "low_stock_items",
+        "include": "specifiedFields",
+        "fieldsToInclude": "item_name,current_stock,unit,reorder_quantity,supplier",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "7e38937c-0521-46d6-9f43-b0e19fcfaf42",
+      "name": "Combine Low-Stock Items"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a6f7d25-a978-400c-a264-d7b3995eab20",
+              "name": "low_stock_count",
+              "value": "={{ $json.low_stock_items.length }}",
+              "type": "string"
+            },
+            {
+              "id": "5858b1e7-940d-499c-badb-3dcb07ca6553",
+              "name": "reorder_summary",
+              "value": "={{ $json.low_stock_items.map((item, index) =>\n`${index + 1}. ${item.item_name}${String.fromCharCode(10)}Current Stock: ${item.current_stock} ${item.unit}${String.fromCharCode(10)}Reorder Quantity: ${item.reorder_quantity} ${item.unit}${String.fromCharCode(10)}Supplier: ${item.supplier}`\n).join(String.fromCharCode(10, 10)) }}",
+              "type": "string"
+            },
+            {
+              "id": "31f1e128-c87c-43d7-80c1-72271ca8cfb0",
+              "name": "low_stock_email_html",
+              "value": "={{ ` <div style=\"font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto; color: #222;\">   <h2 style=\"margin-bottom: 8px;\">Inventory Low-Stock Alert</h2>    <p>     The automated inventory check detected     <strong>${$json.low_stock_items.length}</strong>     item(s) at or below their reorder level.   </p>    <table style=\"width: 100%; border-collapse: collapse; margin-top: 20px;\">     <thead>       <tr>         <th style=\"text-align:left; border-bottom:2px solid #ddd; padding:10px;\">Item</th>         <th style=\"text-align:left; border-bottom:2px solid #ddd; padding:10px;\">Current Stock</th>         <th style=\"text-align:left; border-bottom:2px solid #ddd; padding:10px;\">Reorder Qty</th>         <th style=\"text-align:left; border-bottom:2px solid #ddd; padding:10px;\">Supplier</th>       </tr>     </thead>      <tbody>       ${$json.low_stock_items.map(item => `         <tr>           <td style=\"padding:10px; border-bottom:1px solid #eee;\">             ${item.item_name}           </td>            <td style=\"padding:10px; border-bottom:1px solid #eee;\">             ${item.current_stock} ${item.unit}           </td>            <td style=\"padding:10px; border-bottom:1px solid #eee;\">             ${item.reorder_quantity} ${item.unit}           </td>            <td style=\"padding:10px; border-bottom:1px solid #eee;\">             ${item.supplier}           </td>         </tr>       `).join('')}     </tbody>   </table>    <p style=\"margin-top: 24px;\">     Please review the inventory and arrange replenishment as needed.   </p>    <hr style=\"border:none; border-top:1px solid #ddd; margin-top:24px;\">    <p style=\"font-size:12px; color:#666;\">     Automated Inventory Monitoring<br>     Powered by n8n   </p> </div> ` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "395f135c-c88d-4cb4-b20c-31203b6aebc0",
+      "name": "Build Reorder Summary"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "={{ `Low Stock Alert — ${$json.low_stock_count} Items Need Reordering` }}",
+        "message": "={{ $json.low_stock_email_html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "6395a29d-5366-4237-bf00-17cf79ed8de2",
+      "name": "Send Low-Stock Alert"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "inventory_items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        448,
+        96
+      ],
+      "id": "9870457a-1085-4200-b489-9d2277060878",
+      "name": "Combine All Inventory Items"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6c71a39c-2cfa-476c-b3da-7d5491b9716e",
+              "name": "total_items",
+              "value": "={{ $json.inventory_items.length }}",
+              "type": "string"
+            },
+            {
+              "id": "846d4d79-3fd8-404e-ae56-051d5cd406b8",
+              "name": "low_stock_count",
+              "value": "={{ $json.inventory_items.filter(item => Number(item.current_stock) <= Number(item.reorder_level) ).length }}",
+              "type": "string"
+            },
+            {
+              "id": "740a3c96-ac4b-48ca-bc1a-ee7203b059cd",
+              "name": "healthy_stock_count",
+              "value": "={{ $json.inventory_items.filter(item => Number(item.current_stock) > Number(item.reorder_level) ).length }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        96
+      ],
+      "id": "469999fc-f64c-4da7-bd41-9d635d65cc72",
+      "name": "Build Inventory Metrics"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a9b0aec-9181-4ac3-a383-8e32eac38b37",
+              "name": "daily_summary",
+              "value": "={{ `DAILY INVENTORY SUMMARY\n\nTotal Inventory Items: ${$json.total_items}\nLow-Stock Items: ${$json.low_stock_count}\nHealthy Stock Items: ${$json.healthy_stock_count}\n\nLOW-STOCK ITEMS\n\n${$json.low_stock_count > 0\n? $json.inventory_items\n    .filter(item => Number(item.current_stock) <= Number(item.reorder_level))\n    .map((item, index) =>\n      `${index + 1}. ${item.item_name} — ${item.current_stock} ${item.unit} remaining`\n    )\n    .join(String.fromCharCode(10))\n: 'No low-stock items detected.'}\n\nInventory monitoring completed successfully.` }}",
+              "type": "string"
+            },
+            {
+              "id": "9de0d3ab-a35f-45a6-9a02-5bbdad84217c",
+              "name": "daily_summary_html",
+              "value": "={{ ` <div style=\"font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto; color: #222;\">   <h2 style=\"margin-bottom: 8px;\">Daily Inventory Summary</h2>    <p style=\"color:#555;\">     Automated inventory monitoring has completed successfully.   </p>    <table style=\"width:100%; border-collapse:collapse; margin-top:20px; margin-bottom:24px;\">     <tr>       <td style=\"padding:14px; border:1px solid #ddd;\">         <strong>Total Items</strong><br>         ${$json.total_items}       </td>        <td style=\"padding:14px; border:1px solid #ddd;\">         <strong>Low Stock</strong><br>         ${$json.low_stock_count}       </td>        <td style=\"padding:14px; border:1px solid #ddd;\">         <strong>Healthy Stock</strong><br>         ${$json.healthy_stock_count}       </td>     </tr>   </table>    <h3>Low-Stock Items</h3>    ${     $json.low_stock_count > 0     ? `       <table style=\"width:100%; border-collapse:collapse; margin-top:12px;\">         <thead>           <tr>             <th style=\"text-align:left; padding:10px; border-bottom:2px solid #ddd;\">Item</th>             <th style=\"text-align:left; padding:10px; border-bottom:2px solid #ddd;\">Current Stock</th>             <th style=\"text-align:left; padding:10px; border-bottom:2px solid #ddd;\">Reorder Level</th>           </tr>         </thead>         <tbody>           ${$json.inventory_items             .filter(item => Number(item.current_stock) <= Number(item.reorder_level))             .map(item => `               <tr>                 <td style=\"padding:10px; border-bottom:1px solid #eee;\">                   ${item.item_name}                 </td>                  <td style=\"padding:10px; border-bottom:1px solid #eee;\">                   ${item.current_stock} ${item.unit}                 </td>                  <td style=\"padding:10px; border-bottom:1px solid #eee;\">                   ${item.reorder_level} ${item.unit}                 </td>               </tr>             `).join('')}         </tbody>       </table>     `     : `       <p>No low-stock items detected.</p>     `   }    <hr style=\"border:none; border-top:1px solid #ddd; margin-top:28px;\">    <p style=\"font-size:12px; color:#666;\">     Automated Inventory Monitoring<br>     Powered by n8n   </p> </div> ` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        96
+      ],
+      "id": "710b3775-8b97-4d5b-9eca-ac92a782698a",
+      "name": "Build Daily Summary"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "={{ `Daily Inventory Summary — ${$json.low_stock_count} Low-Stock Items` }}",
+        "message": "={{ $json.daily_summary_html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "71c54f19-ba87-4495-9716-0cd1e061d736",
+      "name": "Send Daily Inventory Summary"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Inventory Check": {
+      "main": [
+        [
+          {
+            "node": "Load Inventory Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Inventory Data": {
+      "main": [
+        [
+          {
+            "node": "Check Low-Stock Level",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combine All Inventory Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Low-Stock Level": {
+      "main": [
+        [
+          {
+            "node": "Combine Low-Stock Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Low-Stock Items": {
+      "main": [
+        [
+          {
+            "node": "Build Reorder Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reorder Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Low-Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine All Inventory Items": {
+      "main": [
+        [
+          {
+            "node": "Build Inventory Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Inventory Metrics": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Inventory Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Manila",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
