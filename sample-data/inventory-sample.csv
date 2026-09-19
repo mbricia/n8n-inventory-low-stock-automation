@@ -1,0 +1,11 @@
+item_id,item_name,category,current_stock,unit,reorder_level,reorder_quantity,supplier
+INV-001,Coffee Beans,Ingredients,8,bags,10,20,Supplier A
+INV-002,Full Cream Milk,Ingredients,4,cartons,6,12,Supplier B
+INV-003,Paper Cups,Packaging,35,pcs,50,100,Supplier C
+INV-004,Cup Lids,Packaging,60,pcs,50,100,Supplier C
+INV-005,Chocolate Syrup,Ingredients,2,bottles,4,6,Supplier A
+INV-006,Vanilla Syrup,Ingredients,6,bottles,3,5,Supplier A
+INV-007,Receipt Paper,Supplies,3,rolls,5,10,Supplier D
+INV-008,Packaging Bags,Packaging,15,pcs,20,50,Supplier C
+INV-009,Cleaning Solution,Supplies,2,bottles,3,6,Supplier D
+INV-010,Disposable Gloves,Supplies,7,boxes,5,10,Supplier D
